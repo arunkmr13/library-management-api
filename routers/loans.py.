@@ -1,0 +1,77 @@
+from fastapi import APIRouter, HTTPException, Depends
+from datetime import datetime
+from bson import ObjectId
+
+from database import get_database
+from auth import get_current_user
+
+router = APIRouter(prefix="/loans", tags=["Loans"])
+
+
+@router.post("/borrow/{book_id}")
+async def borrow_book(book_id: str, user_id: str):
+    db = get_database()
+
+    book = await db["books"].find_one({"_id": ObjectId(book_id)})
+
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    if not book["available"]:
+        raise HTTPException(status_code=400, detail="Book already borrowed")
+
+    loan = {
+        "book_id": book_id,
+        "user_id": user_id,
+        "borrow_date": datetime.utcnow(),
+        "return_date": None
+    }
+
+    result = await db["loans"].insert_one(loan)
+
+    await db["books"].update_one(
+        {"_id": ObjectId(book_id)},
+        {"$set": {"available": False}}
+    )
+
+    return {"loan_id": str(result.inserted_id)}
+
+
+@router.put("/return/{loan_id}")
+async def return_book(loan_id: str):
+    db = get_database()
+
+    loan = await db["loans"].find_one({"_id": ObjectId(loan_id)})
+
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+    if loan["return_date"] is not None:
+        raise HTTPException(status_code=400, detail="Book already returned")
+
+    await db["loans"].update_one(
+        {"_id": ObjectId(loan_id)},
+        {"$set": {"return_date": datetime.utcnow()}}
+    )
+
+    await db["books"].update_one(
+        {"_id": ObjectId(loan["book_id"])},
+        {"$set": {"available": True}}
+    )
+
+    return {"message": "Book returned successfully"}
+
+
+@router.get("/")
+async def list_loans(current_user=Depends(get_current_user)):
+    db = get_database()
+
+    if current_user["role"] == "admin":
+        loans = await db["loans"].find().to_list(100)
+    else:
+        loans = await db["loans"].find({"user_id": current_user["id"]}).to_list(100)
+
+    for loan in loans:
+        loan["_id"] = str(loan["_id"])
+
+    return loans

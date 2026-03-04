@@ -1,0 +1,56 @@
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+
+# ---------- AUTHORS ----------
+
+class AuthorCreate(BaseModel):
+    name: str
+
+
+class AuthorResponse(BaseModel):
+    id: str
+    name: str
+
+
+# ---------- BOOKS ----------
+
+class BookCreate(BaseModel):
+    title: str
+    author_id: str
+
+
+class BookResponse(BaseModel):
+    id: str
+    title: str
+    author_id: str
+    available: bool
+
+
+# ---------- USERS ----------
+
+class UserRegister(BaseModel):
+    username: str
+    password: str
+    role: Optional[str] = "user"
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+# ---------- LOANS ----------
+
+class LoanCreate(BaseModel):
+    book_id: str
+    user_id: str
+
+
+class LoanResponse(BaseModel):
+    id: str
+    book_id: str
+    user_id: str
+    borrow_date: datetime
+    return_date: Optional[datetime] = None
