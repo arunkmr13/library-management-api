@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from bson import ObjectId
 from database import get_database
-from schemas import BookCreate
+from schemas import BookCreate, BookUpdate
 
 router = APIRouter(prefix="/books", tags=["Books"])
 
@@ -81,5 +81,28 @@ async def delete_book(book_id: str):
 
     return {"message": "Book deleted"}
 
+
+
+@router.put("/{book_id}")
+async def update_book(book_id: str, book: BookUpdate):
+    existing_book = await db["books"].find_one({"_id": ObjectId(book_id)})
+
+    if not existing_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    update_data = {k: v for k, v in book.dict().items() if v is not None}
+
+    if "author_id" in update_data:
+        author = await db["authors"].find_one({"_id": ObjectId(update_data["author_id"])})
+        if not author:
+            raise HTTPException(status_code=404, detail="Author not found")
+        update_data["author_id"] = ObjectId(update_data["author_id"])
+
+    await db["books"].update_one(
+        {"_id": ObjectId(book_id)},
+        {"$set": update_data}
+    )
+
+    return {"message": "Book updated successfully"}
 
 

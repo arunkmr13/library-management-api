@@ -30,6 +30,11 @@ class BookUpdate(BaseModel):
     published_year: Optional[int] = None
     pages: Optional[int] = None
 
+class BookUpdate(BaseModel):
+    title: Optional[str]
+    author_id: Optional[str]
+    available: Optional[bool]
+
 
 # ---------------- USERS ----------------
 
@@ -49,4 +54,5 @@ class UserLogin(BaseModel):
 class LoanCreate(BaseModel):
     book_id: str
     user_id: str
+
 
