@@ -56,3 +56,18 @@ async def delete_author(author_id: str):
         raise HTTPException(status_code=404, detail="Author not found")
 
     return {"message": "Author deleted"}
+
+
+@router.put("/{author_id}")
+async def update_author(author_id: str, author: AuthorCreate):
+    db = get_database()
+
+    result = await db["authors"].update_one(
+        {"_id": ObjectId(author_id)},
+        {"$set": {"name": author.name}}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Author not found")
+
+    return {"message": "Author updated successfully"}
